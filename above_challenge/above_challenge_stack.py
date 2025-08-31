@@ -73,7 +73,7 @@ class AboveChallengeStack(Stack):
         list_orders_by_username_lambda = _lambda.Function(
             self, "ListOrdersByUsernameFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
-            handler="list_orders_by_username.handler",
+            handler="list_order_by_username.handler",
             code=_lambda.Code.from_asset(lambda_code_path),
             environment={
                 "ORDERS_TABLE_NAME": orders_table.table_name,

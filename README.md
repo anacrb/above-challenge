@@ -1,58 +1,105 @@
 
-# Welcome to your CDK Python project!
+# Shoe Store Serverless API
 
-This is a blank project for CDK development with Python.
+This project is a serverless backend for a shoe store, built with AWS CDK, Lambda, API Gateway, DynamoDB, and S3.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Architecture
 
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
 
-To manually create a virtualenv on MacOS and Linux:
+
+The API is built using the following AWS services:
+- **AWS API Gateway:** Manages RESTful API endpoints.
+- **AWS Lambda:** Hosts the business logic (written in Python 3.12).
+- **AWS DynamoDB:** Provides NoSQL data storage for shoes and orders.
+- **Amazon S3:** Stores generated JSON invoices.
+- **AWS CDK:** Defines the infrastructure as code.
+
+## Prerequisites
+
+- AWS Account & configured AWS CLI
+- Node.js (for AWS CDK)
+- Python 3.12+
+- AWS CDK Toolkit (`npm install -g aws-cdk`)
+
+## Deployment Instructions
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/anacrb/above-challenge.git
+    cd above-challenge
+    ```
+
+2.  **Set up a Python virtual environment:**
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    ```
+
+3.  **Bootstrap your AWS environment (only needed once per region):**
+    ```bash
+    cdk bootstrap
+    ```
+
+4.  **Deploy the stack:**
+    ```bash
+    cdk deploy
+    ```
+    The CDK will output the API Gateway endpoint URL upon successful deployment.
+
+## API Endpoints
+
+### List Shoes
+
+- **GET** `/shoes`
+- **GET** `/shoes?brand=<brand_name>`
+
+**Example:**
+```bash
+curl "https://b3lf2ywqv7.execute-api.us-east-1.amazonaws.com/prod/shoes?brand=Nike"
+```
+
+### Create Order
+
+- **POST** `/orders`
+
+**Example Request Body:**
+```json
+{
+    "username": "jane.doe",
+    "shoeId": "shoe-001",
+    "size": 42,
+    "shipping": {
+        "address": "456 Oak Ave",
+        "zip": "45678"
+    }
+}
+```
+
+**Example Curl:**
+```bash
+curl -X POST \
+  https://b3lf2ywqv7.execute-api.us-east-1.amazonaws.com/prod/orders \
+  -H 'Content-Type: application/json' \
+  -d '{                                                                                                                 
+    "username": "jane.doe",
+    "items": [
+        { "shoeId": "shoe-001", "size": 42 },
+        { "shoeId": "shoe-004", "size": 39 }
+    ],
+    "shipping": {
+        "address": "123 Main St, Anytown",
+        "zip": "12345"
+    }
+}'
 
 ```
-$ python3 -m venv .venv
+
+### List Orders by Username
+
+- **GET** `/orders/{username}`
+
+**Example:**
+```bash
+curl https://b3lf2ywqv7.execute-api.us-east-1.amazonaws.com/prod/orders/jane.doe
 ```
-
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
-
-```
-$ source .venv/bin/activate
-```
-
-If you are a Windows platform, you would activate the virtualenv like this:
-
-```
-% .venv\Scripts\activate.bat
-```
-
-Once the virtualenv is activated, you can install the required dependencies.
-
-```
-$ pip install -r requirements.txt
-```
-
-At this point you can now synthesize the CloudFormation template for this code.
-
-```
-$ cdk synth
-```
-
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
-
-## Useful commands
-
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
-
-Enjoy!
