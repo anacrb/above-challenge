@@ -1,3 +1,5 @@
+import os
+
 from aws_cdk import (
     Stack,
     aws_dynamodb as dynamodb, RemovalPolicy,
@@ -44,11 +46,13 @@ class AboveChallengeStack(Stack):
             auto_delete_objects=True # For easy cleanup
         )
 
+        lambda_code_path = os.path.join(os.path.dirname(__file__), "..", "build", "lambda")
+
         list_shoes_lambda = _lambda.Function(
             self, "ListShoesFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="list_shoes.handler",
-            code=_lambda.Code.from_asset("src/handlers"),
+            code=_lambda.Code.from_asset(lambda_code_path),
             environment={
                 "SHOES_TABLE_NAME": shoes_table.table_name
             }
@@ -58,7 +62,7 @@ class AboveChallengeStack(Stack):
             self, "CreateOrderFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="create_order.handler",
-            code=_lambda.Code.from_asset("src/handlers"),
+            code=_lambda.Code.from_asset(lambda_code_path),
             environment={
                 "SHOES_TABLE_NAME": shoes_table.table_name,
                 "ORDERS_TABLE_NAME": orders_table.table_name,
@@ -70,7 +74,7 @@ class AboveChallengeStack(Stack):
             self, "ListOrdersByUsernameFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="list_orders_by_username.handler",
-            code=_lambda.Code.from_asset("src/handlers"),
+            code=_lambda.Code.from_asset(lambda_code_path),
             environment={
                 "ORDERS_TABLE_NAME": orders_table.table_name,
             }
@@ -88,12 +92,15 @@ class AboveChallengeStack(Stack):
 
         # /shoes endpoint
         shoes_resource = api.root.add_resource("shoes")
-        shoes_resource.add_method("GET", apigateway.LambdaIntegration(list_shoes_lambda))
+        shoes_resource.add_method("GET", apigateway.LambdaIntegration(list_shoes_lambda),
+                                  authorization_type=apigateway.AuthorizationType.NONE)
 
         # /orders endpoint
         orders_resource = api.root.add_resource("orders")
-        orders_resource.add_method("POST", apigateway.LambdaIntegration(create_order_lambda))
+        orders_resource.add_method("POST", apigateway.LambdaIntegration(create_order_lambda),
+                                   authorization_type=apigateway.AuthorizationType.NONE)
 
         # /orders/{username} endpoint
         orders_by_user_resource = orders_resource.add_resource("{username}")
-        orders_by_user_resource.add_method("GET", apigateway.LambdaIntegration(list_orders_by_username_lambda))
+        orders_by_user_resource.add_method("GET", apigateway.LambdaIntegration(list_orders_by_username_lambda),
+                                           authorization_type=apigateway.AuthorizationType.NONE)
