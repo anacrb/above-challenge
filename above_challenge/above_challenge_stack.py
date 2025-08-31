@@ -48,7 +48,7 @@ class AboveChallengeStack(Stack):
             self, "ListShoesFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="list_shoes.handler",
-            code=_lambda.Code.from_asset("../src/handlers"),
+            code=_lambda.Code.from_asset("src/handlers"),
             environment={
                 "SHOES_TABLE_NAME": shoes_table.table_name
             }
@@ -58,7 +58,7 @@ class AboveChallengeStack(Stack):
             self, "CreateOrderFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="create_order.handler",
-            code=_lambda.Code.from_asset("../src/handlers"),
+            code=_lambda.Code.from_asset("src/handlers"),
             environment={
                 "SHOES_TABLE_NAME": shoes_table.table_name,
                 "ORDERS_TABLE_NAME": orders_table.table_name,
@@ -70,7 +70,7 @@ class AboveChallengeStack(Stack):
             self, "ListOrdersByUsernameFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="list_orders_by_username.handler",
-            code=_lambda.Code.from_asset("../src/handlers"),
+            code=_lambda.Code.from_asset("src/handlers"),
             environment={
                 "ORDERS_TABLE_NAME": orders_table.table_name,
             }
