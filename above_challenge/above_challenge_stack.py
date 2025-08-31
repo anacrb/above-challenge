@@ -43,7 +43,7 @@ class AboveChallengeStack(Stack):
         invoices_bucket = s3.Bucket(
             self, "InvoicesBucket",
             removal_policy=RemovalPolicy.DESTROY,
-            auto_delete_objects=True # For easy cleanup
+            auto_delete_objects=True
         )
 
         lambda_code_path = os.path.join(os.path.dirname(__file__), "..", "build", "lambda")

@@ -1,6 +1,7 @@
 import os
 from pynamodb.models import Model
-from pynamodb.attributes import UnicodeAttribute, NumberSetAttribute, NumberAttribute
+from pynamodb.attributes import UnicodeAttribute, NumberSetAttribute, NumberAttribute, ListAttribute, MapAttribute, \
+    UTCDateTimeAttribute
 from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
 
 # Define the brand index
@@ -14,7 +15,7 @@ class BrandIndex(GlobalSecondaryIndex):
 class ShoeModel(Model):
     class Meta:
         table_name = os.environ['SHOES_TABLE_NAME']
-        region = os.environ['AWS_REGION'] # Assumes region is in environment
+        region = os.environ.get('AWS_REGION')
 
     id = UnicodeAttribute(hash_key=True)
     brand = UnicodeAttribute()
@@ -24,3 +25,14 @@ class ShoeModel(Model):
 
     # Attach the index to the model
     brand_index = BrandIndex()
+
+class OrderModel(Model):
+    class Meta:
+        table_name = os.environ['ORDERS_TABLE_NAME']
+        region = os.environ.get('AWS_REGION')
+    orderId = UnicodeAttribute(hash_key=True)
+    username = UnicodeAttribute()
+    items = ListAttribute(of=MapAttribute)
+    shipping = MapAttribute()
+    totalPrice = NumberAttribute()
+    createdAt = UTCDateTimeAttribute()
