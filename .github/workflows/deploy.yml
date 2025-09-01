@@ -35,6 +35,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+
       - name: Install Python requirements for CDK
         run: pip install -r requirements.txt
 
