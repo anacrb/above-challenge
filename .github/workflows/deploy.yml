@@ -5,7 +5,7 @@ name: Deploy Shoe Store API to AWS
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   # This job detects which parts of the code have changed.
