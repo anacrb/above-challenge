@@ -3,7 +3,7 @@ name: Deploy Shoe Store API to AWS
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
