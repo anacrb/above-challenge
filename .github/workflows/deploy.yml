@@ -1,34 +1,49 @@
+# .github/workflows/deploy.yml
+
 name: Deploy Shoe Store API to AWS
 
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
-  deploy:
+  # This job detects which parts of the code have changed.
+  changes:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
+    outputs:
+      shared: ${{ steps.filter.outputs.shared }}
+      lambdas: ${{ steps.filter.outputs.lambdas }}
+      api: ${{ steps.filter.outputs.api }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            # Changes to core infrastructure
+            shared:
+              - 'above_challenge/above_challenge_stack.py'
+              - 'app.py'
 
+            # Changes to any Lambda code or dependencies
+            lambdas:
+              - 'src/handlers/**'
+              - 'build.sh'
+
+            # The API stack only needs to be redeployed if a lambda changes
+            # or its own definition changes.
+            api:
+              - 'src/handlers/**'
+              - 'above_challenge/above_challenge_stack.py'
+
+  # This job builds the Lambda code and uploads it as an artifact
+  # for the deploy jobs to use.
+  build:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::679835925078:role/GitHubActions-ShoeStore-DeployRole
-          aws-region: us-east-1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install AWS CDK
-        run: npm install -g aws-cdk
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -40,14 +55,58 @@ jobs:
         with:
           version: 1.8.2
 
-      - name: Install Python requirements for CDK
-        run: pip install -r requirements.txt
-
       - name: Make build script executable
         run: chmod +x ./build.sh
 
-      - name: Run build script to package Lambda functions
+      - name: Run build script
         run: ./build.sh
 
-      - name: Deploy with CDK
-        run: cdk deploy --require-approval never
+      - name: Upload Lambda build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-build
+          path: build/lambda/
+
+  # This is the main deployment job. It runs different deployment
+  # commands based on the 'changes' job output.
+  deploy:
+    needs: [changes, build]
+    # Only run this job if something actually changed
+    if: needs.changes.outputs.shared == 'true' || needs.changes.outputs.lambdas == 'true' || needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Lambda build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-build
+          path: build/lambda/
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::679835925078:role/GitHubActions-ShoeStore-DeployRole
+          aws-region: us-east-1
+
+      - name: Setup Node.js and CDK
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g aws-cdk
+
+      - name: Setup Python and CDK requirements
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+
+      # Deploy all stacks. CDK is smart enough to only deploy the
+      # parts that have changed since the last deployment.
+      - name: Deploy all changed stacks with CDK
+        run: cdk deploy --all --require-approval never

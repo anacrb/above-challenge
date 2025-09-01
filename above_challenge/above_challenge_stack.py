@@ -47,14 +47,11 @@ class SharedResourceStack(Stack):
             auto_delete_objects=True
         )
 
-        self.api = apigateway.RestApi(self, "ShoeStoreApi", rest_api_name="ShoesStoreAPI")
-
-
 class ListShoesStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, shared_resources: SharedResourceStack, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        list_shoes_lambda = _lambda.Function(
+        self.list_shoes_lambda = _lambda.Function(
             self, "ListShoesFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="list_shoes.handler",
@@ -64,19 +61,14 @@ class ListShoesStack(Stack):
             }
         )
 
-        shared_resources.shoes_table.grant_read_data(list_shoes_lambda)
-
-        # /shoes endpoint
-        shoes_resource = shared_resources.api.root.add_resource("shoes")
-        shoes_resource.add_method("GET", apigateway.LambdaIntegration(list_shoes_lambda),
-                                  authorization_type=apigateway.AuthorizationType.NONE)
+        shared_resources.shoes_table.grant_read_data(self.list_shoes_lambda)
 
 
-class CreateOrderStack(Stack):
+class OrdersAPIStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, shared_resources: SharedResourceStack, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        create_order_lambda = _lambda.Function(
+        self.create_order_lambda = _lambda.Function(
             self, "CreateOrderFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="create_order.handler",
@@ -88,22 +80,7 @@ class CreateOrderStack(Stack):
             }
         )
 
-        shared_resources.shoes_table.grant_read_data(create_order_lambda)
-        shared_resources.orders_table.grant_write_data(create_order_lambda)
-        shared_resources.invoices_bucket.grant_put(create_order_lambda)
-
-        # /orders endpoint
-        orders_resource = shared_resources.api.root.add_resource("orders")
-        orders_resource.add_method("POST", apigateway.LambdaIntegration(create_order_lambda),
-                                   authorization_type=apigateway.AuthorizationType.NONE)
-
-
-class ListOrdersByUsernameStack(Stack):
-
-    def __init__(self, scope: Construct, construct_id: str, shared_resources: SharedResourceStack, **kwargs) -> None:
-        super().__init__(scope, construct_id, **kwargs)
-
-        list_orders_by_username_lambda = _lambda.Function(
+        self.list_orders_by_username_lambda = _lambda.Function(
             self, "ListOrdersByUsernameFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="list_order_by_username.handler",
@@ -113,10 +90,32 @@ class ListOrdersByUsernameStack(Stack):
             }
         )
 
-        shared_resources.orders_table.grant_read_data(list_orders_by_username_lambda)
+        shared_resources.shoes_table.grant_read_data(self.create_order_lambda)
+        shared_resources.orders_table.grant_write_data(self.create_order_lambda)
+        shared_resources.invoices_bucket.grant_put(self.create_order_lambda)
+        shared_resources.orders_table.grant_read_data(self.list_orders_by_username_lambda)
+
+
+class APIGatewayStack(Stack):
+    def __init__(self, scope: Construct, construct_id: str,
+                 list_shoes_stack: ListShoesStack,
+                 orders_api_stack: OrdersAPIStack,
+                 **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+
+        api = apigateway.RestApi(self, "ShoeStoreApi", rest_api_name="ShoesStoreAPI")
+
+        # /shoes endpoint
+        shoes_resource = api.root.add_resource("shoes")
+        shoes_resource.add_method("GET", apigateway.LambdaIntegration(list_shoes_stack.list_shoes_lambda),
+                                  authorization_type=apigateway.AuthorizationType.NONE)
+
+        # /orders endpoint
+        orders_resource = api.root.add_resource("orders")
+        orders_resource.add_method("POST", apigateway.LambdaIntegration(orders_api_stack.create_order_lambda),
+                                   authorization_type=apigateway.AuthorizationType.NONE)
 
         # /orders/{username} endpoint
-        orders_resource = shared_resources.api.root.get_resource("orders") or shared_resources.api.root.add_resource("orders")
         orders_by_user_resource = orders_resource.add_resource("{username}")
-        orders_by_user_resource.add_method("GET", apigateway.LambdaIntegration(list_orders_by_username_lambda),
+        orders_by_user_resource.add_method("GET", apigateway.LambdaIntegration(orders_api_stack.list_orders_by_username_lambda),
                                            authorization_type=apigateway.AuthorizationType.NONE)

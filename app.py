@@ -6,8 +6,8 @@ import aws_cdk as cdk
 from above_challenge.above_challenge_stack import (
     SharedResourceStack,
     ListShoesStack,
-    CreateOrderStack,
-    ListOrdersByUsernameStack
+    OrdersAPIStack,
+    APIGatewayStack
 )
 
 
@@ -19,8 +19,12 @@ shared_stack = SharedResourceStack(app, "SharedResourceStack")
 
 # --- Lambda stacks ---
 # Independent stacks that create a lambda function. Depends on shared stack.
-ListShoesStack(app, "ListShoesStack", shared_stack)
-CreateOrderStack(app, "CreateOrderStack", shared_stack)
-ListOrdersByUsernameStack(app, "ListOrdersByUsernameStack", shared_stack)
+list_shoes_stack = ListShoesStack(app, "ListShoesStack", shared_stack)
+orders_api_stack = OrdersAPIStack(app, "OrdersAPIStack", shared_stack)
+
+# --- API Gateway stack ---
+# Initialize the API Gateway
+
+api_stack = APIGatewayStack(app, "APIGatewayStack", list_shoes_stack, orders_api_stack)
 
 app.synth()
