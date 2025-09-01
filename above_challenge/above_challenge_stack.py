@@ -10,6 +10,8 @@ from aws_cdk import (
 )
 from constructs import Construct
 
+LAMBDA_BUILD_PATH = os.path.join(os.path.dirname(__file__), "..", "build", "lambda")
+
 class SharedResourceStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -52,13 +54,11 @@ class ListShoesStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, shared_resources: SharedResourceStack, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        lambda_code_path = os.path.join(os.path.dirname(__file__), "..", "build", "lambda")
-
         list_shoes_lambda = _lambda.Function(
             self, "ListShoesFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="list_shoes.handler",
-            code=_lambda.Code.from_asset(lambda_code_path),
+            code=_lambda.Code.from_asset(LAMBDA_BUILD_PATH),
             environment={
                 "SHOES_TABLE_NAME": shared_resources.shoes_table.table_name
             }
@@ -76,13 +76,11 @@ class CreateOrderStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, shared_resources: SharedResourceStack, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        lambda_code_path = os.path.join(os.path.dirname(__file__), "..", "build", "lambda")
-
         create_order_lambda = _lambda.Function(
             self, "CreateOrderFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="create_order.handler",
-            code=_lambda.Code.from_asset(lambda_code_path),
+            code=_lambda.Code.from_asset(LAMBDA_BUILD_PATH),
             environment={
                 "SHOES_TABLE_NAME": shared_resources.shoes_table.table_name,
                 "ORDERS_TABLE_NAME": shared_resources.orders_table.table_name,
@@ -105,13 +103,11 @@ class ListOrdersByUsernameStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, shared_resources: SharedResourceStack, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        lambda_code_path = os.path.join(os.path.dirname(__file__), "..", "build", "lambda")
-
         list_orders_by_username_lambda = _lambda.Function(
             self, "ListOrdersByUsernameFunction",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="list_order_by_username.handler",
-            code=_lambda.Code.from_asset(lambda_code_path),
+            code=_lambda.Code.from_asset(LAMBDA_BUILD_PATH),
             environment={
                 "ORDERS_TABLE_NAME": shared_resources.orders_table.table_name,
             }
@@ -120,6 +116,7 @@ class ListOrdersByUsernameStack(Stack):
         shared_resources.orders_table.grant_read_data(list_orders_by_username_lambda)
 
         # /orders/{username} endpoint
-        orders_by_user_resource = shared_resources.orders_resource.add_resource("{username}")
+        orders_resource = shared_resources.api.root.get_resource("orders") or shared_resources.api.root.add_resource("orders")
+        orders_by_user_resource = orders_resource.add_resource("{username}")
         orders_by_user_resource.add_method("GET", apigateway.LambdaIntegration(list_orders_by_username_lambda),
                                            authorization_type=apigateway.AuthorizationType.NONE)
