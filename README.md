@@ -20,6 +20,8 @@ The API is built using the following AWS services:
 - Node.js (for AWS CDK)
 - Python 3.12+
 - AWS CDK Toolkit (`npm install -g aws-cdk`)
+- Poetry for Python dependency management. 
+- Docker: The build script relies on Docker, which must be running on your machine.
 
 ## Deployment Instructions
 
@@ -33,19 +35,45 @@ The API is built using the following AWS services:
     ```bash
     python -m venv .venv
     source .venv/bin/activate
+    # Install the CDK's Python dependencies
     pip install -r requirements.txt
     ```
+3. **Build the lambda functions:**
+    ```bash
+    # Make the build script executable (only needed once)
+    chmod +x ./build.sh
 
-3.  **Bootstrap your AWS environment (only needed once per region):**
+    # Run the build script
+    ./build.sh
+   ```
+
+4. **Bootstrap your AWS environment (only needed once per region):**
     ```bash
     cdk bootstrap
     ```
 
-4.  **Deploy the stack:**
+5. **Deploy the stack:**
+    - Deploy all stacks(Initial deploy)
     ```bash
-    cdk deploy
+    cdk deploy --all
     ```
-    The CDK will output the API Gateway endpoint URL upon successful deployment.
+   - Deploy only one stack(eg. CreateOrderStack)
+    ```bash
+    cdk deploy CreateOrderStack
+    ```
+   
+   The CDK will output the API Gateway endpoint URL upon successful deployment.
+
+
+6. Tear Down the stack
+    - Destroy the entire stack
+    ```bash
+    cdk destroy --all
+    ```
+   - Destroy only one stack(eg. CreateOrderStack)
+   ```bash
+   cdk destroy CreateOrderStack
+   ```
 
 ## API Endpoints
 
